@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/* Brand theme variables */
+:root {
+  --background: #FEE78B; /* soft yellow default background */
+  --foreground: #3A2213; /* dark brown text */
+
+  --color-brown-900: #3A2213;
+  --color-yellow-200: #FEE78B;
+  --color-teal-700: #127C71;
+  --color-peach-300: #FDB8A7;
+  --color-brown-600: #7D5338;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brown-900: var(--color-brown-900);
+  --color-brown-600: var(--color-brown-600);
+  --color-yellow-200: var(--color-yellow-200);
+  --color-teal-700: var(--color-teal-700);
+  --color-peach-300: var(--color-peach-300);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1b120c;
+    --foreground: #FEE78B;
+  }
+}
+
+html, body { height: 100%; }
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Component utilities */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-xl px-5 py-2.5 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply bg-[color:var(--color-brown-900)] text-white hover:bg-[color:var(--color-brown-600)] focus:ring-[color:var(--color-peach-300)] focus:ring-offset-[color:var(--color-yellow-200)];
+  }
+  .btn-teal {
+    @apply bg-[color:var(--color-teal-700)] text-white hover:opacity-90 focus:ring-[color:var(--color-peach-300)] focus:ring-offset-[color:var(--color-yellow-200)];
+  }
+  .btn-outline {
+    @apply border border-[color:var(--color-brown-900)] text-[color:var(--color-brown-900)] bg-transparent hover:bg-[color:var(--color-peach-300)]/20;
+  }
+  .card {
+    @apply rounded-2xl bg-white shadow-sm border border-black/5 p-6 text-[color:var(--color-brown-900)];
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full bg-[color:var(--color-peach-300)]/60 px-3 py-1 text-[13px] font-medium text-[color:var(--color-brown-900)];
+  }
+  .input {
+    @apply w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-[color:var(--color-brown-900)] shadow-inner placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-700)]/30;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-[color:var(--color-brown-900)];
+  }
+  .table {
+    @apply w-full border-separate border-spacing-y-2 text-sm;
+  }
+}
+
+/* Cute wag animation */
+@keyframes wag {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(12deg); }
+  50% { transform: rotate(-12deg); }
+  75% { transform: rotate(10deg); }
+}
+.wag {
+  animation: wag 1.2s ease-in-out infinite;
+  transform-origin: left center;
+}

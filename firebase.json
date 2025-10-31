@@ -1,0 +1,9 @@
+{
+  "hosting": {
+    "public": "out",
+    "ignore": ["**/.*"],
+    "rewrites": [
+      { "source": "**", "destination": "/index.html" }
+    ]
+  }
+}
