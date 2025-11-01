@@ -2,7 +2,7 @@
 
 /* Brand theme variables */
 :root {
-  --background: #FEE78B; /* soft yellow default background */
+  --background: #ffffff; /* page background per demo */
   --foreground: #3A2213; /* dark brown text */
 
   --color-brown-900: #3A2213;
@@ -24,18 +24,19 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1b120c;
-    --foreground: #FEE78B;
-  }
-}
+/* Force white background regardless of OS theme */
+/* Removed dark-mode override to keep pages white */
 
 html, body { height: 100%; }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-body), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+h1, h2, h3, .font-heading {
+  font-family: var(--font-heading), var(--font-body), ui-sans-serif, system-ui;
 }
 
 /* Component utilities */
@@ -46,11 +47,20 @@ body {
   .btn-primary {
     @apply bg-[color:var(--color-brown-900)] text-white hover:bg-[color:var(--color-brown-600)] focus:ring-[color:var(--color-peach-300)] focus:ring-offset-[color:var(--color-yellow-200)];
   }
+  /* Re-style teal buttons to yellow per request */
   .btn-teal {
-    @apply bg-[color:var(--color-teal-700)] text-white hover:opacity-90 focus:ring-[color:var(--color-peach-300)] focus:ring-offset-[color:var(--color-yellow-200)];
+    @apply bg-[color:var(--color-yellow-200)] text-[color:var(--color-brown-900)] hover:opacity-90 focus:ring-[color:var(--color-peach-300)] focus:ring-offset-[color:var(--color-yellow-200)];
   }
   .btn-outline {
     @apply border border-[color:var(--color-brown-900)] text-[color:var(--color-brown-900)] bg-transparent hover:bg-[color:var(--color-peach-300)]/20;
+  }
+  .btn-white {
+    @apply inline-flex items-center justify-center rounded-xl px-5 py-2.5 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-white text-[color:var(--color-brown-900)] border border-black/10 hover:bg-black/5;
+  }
+  .btn-yellow {
+    @apply inline-flex items-center justify-center rounded-xl px-5 py-2.5 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-[color:var(--color-yellow-200)] text-[color:var(--color-brown-900)] hover:opacity-90;
   }
   .card {
     @apply rounded-2xl bg-white shadow-sm border border-black/5 p-6 text-[color:var(--color-brown-900)];
@@ -58,11 +68,14 @@ body {
   .badge {
     @apply inline-flex items-center gap-1 rounded-full bg-[color:var(--color-peach-300)]/60 px-3 py-1 text-[13px] font-medium text-[color:var(--color-brown-900)];
   }
+  .badge-yellow {
+    @apply inline-flex items-center gap-1 rounded-full bg-[color:var(--color-yellow-200)] px-3 py-1 text-[13px] font-medium text-[color:var(--color-brown-900)];
+  }
   .input {
-    @apply w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-[color:var(--color-brown-900)] shadow-inner placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-700)]/30;
+    @apply w-full rounded-xl border border-black/10 bg-white px-3 py-2 shadow-inner placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-700)]/30;
   }
   .label {
-    @apply mb-1 block text-sm font-medium text-[color:var(--color-brown-900)];
+    @apply mb-1 block text-sm font-medium;
   }
   .table {
     @apply w-full border-separate border-spacing-y-2 text-sm;

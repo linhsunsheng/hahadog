@@ -1,25 +1,30 @@
-"use client"
+﻿"use client"
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
-import { firestore } from '@/lib/firebase'
+import { deleteDoc, doc, getDoc, updateDoc } from 'firebase/firestore'
+import { db, storage } from '@/lib/firebase'
 import { useAuth } from '@/lib/useAuth'
 import Card from '@/components/Card'
 import Button from '@/components/Button'
 import { Field, Input, Select } from '@/components/Field'
-import DogDoodle from '@/components/DogDoodle'
 import NutritionResults from '@/components/NutritionResults'
-import { computeNutrition, deriveAgeFromBirthday, type Activity, type Goal, type Neuter } from '@/lib/nutrition'
-import { BREEDS, type BreedKey } from '@/lib/breeds'
+import { computeNutrition, deriveAgeFromBirthday, type Activity, type Neuter } from '@/lib/nutrition'
+import { allBreedOptions, type BreedKey } from '@/lib/breeds'
+import Avatar from '@/components/Avatar'
+import ConfirmDialog from '@/components/ConfirmDialog'
+import { uploadDogPhoto } from '@/lib/upload'
+import { deleteObject, ref } from 'firebase/storage'
 
 interface DogDoc {
   nickname: string
   birthday?: string | null
-  breedKey: BreedKey
   neuter: Neuter
   activity: Activity
   weightKg?: number | null
-  goal?: Goal
+  goal?: any
+  photoURL?: string | null
+  locked?: boolean
+  breedKey?: string | null
 }
 
 export default function DogDetailsPage() {
@@ -32,16 +37,20 @@ export default function DogDetailsPage() {
   const [weight, setWeight] = useState<number | ''>('')
   const [activity, setActivity] = useState<Activity>('normal')
   const [neuter, setNeuter] = useState<Neuter>('neutered')
-  const [goal, setGoal] = useState<Goal>('maintain')
+  
+  const [photoURL, setPhotoURL] = useState<string | null>(null)
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [locked, setLocked] = useState<boolean>(false)
   const [result, setResult] = useState<ReturnType<typeof computeNutrition> | null>(null)
   const [saving, setSaving] = useState(false)
+  const [breedKey, setBreedKey] = useState<BreedKey | 'not_listed'>('mixed_medium')
 
   useEffect(() => { if (!loading && !user) router.replace('/auth') }, [user, loading, router])
 
   useEffect(() => {
     async function load() {
       if (!user) return
-      const ref = doc(firestore(), 'users', user.uid, 'dogs', params.id)
+      const ref = doc(db, 'users', user.uid, 'dogs', params.id)
       const snap = await getDoc(ref)
       if (!snap.exists()) { router.replace('/dashboard'); return }
       const data = snap.data() as DogDoc
@@ -50,87 +59,121 @@ export default function DogDetailsPage() {
       setAgeY(years); setAgeM(months)
       setActivity(data.activity)
       setNeuter(data.neuter)
-      setGoal((data.goal as Goal) || 'maintain')
+      
       setWeight(typeof data.weightKg === 'number' ? data.weightKg : '')
+      setPhotoURL(data.photoURL ?? null)
+      setLocked(!!data.locked)
+      setBreedKey((data.breedKey as any) || 'mixed_medium')
     }
     load()
   }, [user, params.id, router])
 
-  const breedLabel = useMemo(() => dog ? BREEDS[dog.breedKey].label : '', [dog])
+  const puppy = useMemo(()=> Boolean(dog?.birthday) && (ageY*12 + ageM) < 24, [dog, ageY, ageM])
 
-  function recalc() {
+  async function recalc() {
     if (!dog || weight === '' || weight <= 0) { setResult(null); return }
     const res = computeNutrition({
-      breed: dog.breedKey,
+      breed: (breedKey === 'not_listed' ? 'mixed_medium' : breedKey) as BreedKey,
       weightKg: Number(weight),
       ageYears: ageY,
       ageMonths: ageM,
       activity,
       neuter,
-      goal,
     })
     setResult(res)
-  }
-
-  async function saveDefaults() {
-    if (!user || !dog) return
+    // Save changes simultaneously
     setSaving(true)
     try {
-      const ref = doc(firestore(), 'users', user.uid, 'dogs', params.id)
-      await updateDoc(ref, {
-        neuter,
-        activity,
-        goal,
-        weightKg: weight === '' ? null : Number(weight),
-        updatedAt: serverTimestamp(),
-      })
+      const refDoc = doc(db, 'users', user!.uid, 'dogs', params.id)
+      const patch: any = { updatedAt: Date.now() }
+      if (!locked) {
+        patch.nickname = dog.nickname
+        patch.birthday = dog.birthday ?? null
+        patch.breedKey = breedKey
+        if (photo) {
+          const up = await uploadDogPhoto(user!.uid, params.id as string, photo)
+          patch.photoURL = up.url
+          setPhotoURL(up.url)
+        }
+      }
+      patch.neuter = neuter
+      patch.activity = activity
+      patch.goal = res.goal
+      patch.weightKg = Number(weight)
+      await updateDoc(refDoc, patch)
     } finally { setSaving(false) }
   }
 
-  useEffect(() => { recalc() }, [dog, weight, ageY, ageM, activity, neuter, goal])
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] || null
+    if (!f) { setPhoto(null); return }
+    if (!/^image\/(jpeg|png)$/i.test(f.type) || f.size > 2*1024*1024) { alert('Use JPEG/PNG â‰¤ 2MB'); return }
+    setPhoto(f)
+    setPhotoURL(URL.createObjectURL(f))
+  }
+
+  useEffect(() => {
+    if (dog?.birthday) {
+      const a = deriveAgeFromBirthday(dog.birthday)
+      setAgeY(a.years); setAgeM(a.months)
+    }
+  }, [dog?.birthday])
 
   if (!user || !dog) return null
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="space-y-4">
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-black/60">{breedLabel}</div>
-              <h1 className="text-2xl font-semibold">{dog.nickname}</h1>
-            </div>
-            <DogDoodle className="h-16 w-32" />
+        <div className="rounded-2xl bg-yellow-200 p-6 text-brown-600 shadow">
+          <div className="flex flex-col items-center gap-2">
+            <Avatar src={photoURL || undefined} size={96} />
+            {false && (
+              <div>
+                <label className="label" htmlFor="photo">Replace photo</label>
+                <input id="photo" name="photo" type="file" accept="image/jpeg,image/png" onChange={onFile} />
+              </div>
+            )}
           </div>
-        </Card>
-        <Card>
-          <div className="grid gap-4">
+          <div className="mt-4 grid gap-4">
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Age (years)" id="ageY"><Input id="ageY" type="number" min={0} value={ageY} onChange={(e)=>setAgeY(Number(e.target.value))} /></Field>
-              <Field label="Age (months)" id="ageM"><Input id="ageM" type="number" min={0} max={11} value={ageM} onChange={(e)=>setAgeM(Number(e.target.value))} /></Field>
+              <Field label="Nickname" id="nick"><Input id="nick" value={dog.nickname} disabled={locked} onChange={(e)=> setDog({ ...dog, nickname: e.target.value })} /></Field>
+              <Field label="Birthday" id="bday"><Input id="bday" type="date" value={dog.birthday ?? ''} disabled={locked} onChange={(e)=> setDog({ ...dog, birthday: e.target.value })} /></Field>
             </div>
-            <Field label="Current weight (kg)" id="weight"><Input id="weight" type="number" step="0.1" min={1} value={weight} onChange={(e)=> setWeight(e.target.value === '' ? '' : Number(e.target.value))} /></Field>
+            <Field label="Breed" id="breed"><Select id="breed" value={breedKey} disabled={locked} onChange={(e)=> setBreedKey(e.target.value as any)}>
+              {allBreedOptions().map((b)=> (<option key={b.key} value={b.key}>{b.label}</option>))}
+              <option value="not_listed">Not on the list</option>
+            </Select></Field>
+            <Field label="Weight (kg)" id="weight"><Input id="weight" type="number" step="0.1" min={1} max={80} value={weight} onChange={(e)=> setWeight(e.target.value === '' ? '' : Number(e.target.value))} /><p className="mt-1 text-xs">Typical range 1â€“80 kg. Results may be inaccurate outside this range.</p></Field>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Neuter status" id="neuter"><Select id="neuter" value={neuter} onChange={(e)=>setNeuter(e.target.value as Neuter)}><option value="neutered">Neutered</option><option value="intact">Intact</option></Select></Field>
+              <Field label="Neuter" id="neuter"><Select id="neuter" value={neuter} onChange={(e)=>setNeuter(e.target.value as Neuter)}><option value="neutered">Neutered</option><option value="intact">Intact</option></Select></Field>
               <Field label="Activity" id="activity"><Select id="activity" value={activity} onChange={(e)=>setActivity(e.target.value as Activity)}><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option></Select></Field>
+              {/* Goal is derived automatically; no input required */}
             </div>
-            <Field label="Goal" id="goal"><Select id="goal" value={goal} onChange={(e)=>setGoal(e.target.value as Goal)}><option value="maintain">Maintain</option><option value="lose">Lose</option><option value="gain">Gain</option></Select></Field>
-            <div className="flex gap-3">
-              <Button type="button" className="btn-teal" onClick={recalc}>Recalculate</Button>
-              <Button type="button" variant="outline" onClick={saveDefaults} disabled={saving}>Save defaults</Button>
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" className="btn-primary" onClick={recalc} disabled={saving}>Calculate</Button>
+              <ConfirmDialog title="Delete profile" message="This will permanently delete the profile and photo."
+                onConfirm={async ()=>{
+                  const refDoc = doc(db,'users',user!.uid,'dogs',params.id)
+                  await deleteDoc(refDoc)
+                  if (photoURL) { try { await deleteObject(ref(storage, photoURL)) } catch {} }
+                  router.push('/dashboard')
+                }}>
+                {(open)=> (<button onClick={open} className="btn btn-outline">Delete Profile</button>)}
+              </ConfirmDialog>
             </div>
           </div>
-        </Card>
+        </div>
+        
       </div>
       <div>
-        {result ? (
-          <NutritionResults {...result} />
-        ) : (
-          <Card>
-            <p className="text-black/70">Enter weight and confirm age to see daily targets.</p>
-          </Card>
+        {puppy && (
+          <div role="alert" aria-live="polite" className="mb-4 rounded-xl border border-yellow-600/30 bg-yellow-100 p-3 text-sm text-yellow-900">Puppy detected (&lt;2 years). This calculator targets adult dogs; values may not be appropriate.</div>
+        )}
+        {result ? (<div className="rounded-2xl bg-peach-300 p-6 text-brown-600 shadow"><NutritionResults {...result} bare /></div>) : (
+          <Card><p className="text-black/70">Enter weight and confirm age to see daily targets.</p></Card>
         )}
       </div>
     </div>
   )
 }
+

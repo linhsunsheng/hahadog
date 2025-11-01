@@ -1,29 +1,37 @@
-import Card from './Card'
+﻿import Card from "./Card";
 
 export interface NutritionProps {
-  kcalPerDay: number
-  proteinG: number
-  fatG: number
-  linoleicG: number
-  calciumG: number
-  phosphorusG: number
-  caToPRatio: number
-  factorUsed: number
-  lifeStage: string
-  notes: string[]
+  kcalPerDay: number;
+  proteinG: number;
+  fatG: number;
+  linoleicG: number;
+  calciumG: number;
+  phosphorusG: number;
+  caToPRatio: number;
+  factorUsed: number;
+  lifeStage: string;
+  idealWeightKg?: number;
+  goal?: string;
+  notes: string[];
 }
 
-export default function NutritionResults(props: NutritionProps) {
-  return (
-    <Card>
+export default function NutritionResults(props: NutritionProps & { bare?: boolean }) {
+  const content = (
+    <>
       <div className="flex items-baseline justify-between">
         <div>
           <div className="text-sm text-black/60">Daily Calories</div>
           <div className="text-4xl font-semibold">{props.kcalPerDay} kcal</div>
-          <div className="mt-2 text-xs text-black/50">Factor: {props.factorUsed} · {props.lifeStage}</div>
+          <div className="mt-2 text-xs text-black/50">Factor: {props.factorUsed} - {props.lifeStage}</div>
+          {typeof props.idealWeightKg === 'number' && (
+            <div className="mt-1 text-xs text-black/50">Ideal weight reference: {props.idealWeightKg} kg</div>
+          )}
         </div>
         <span className="badge">Ca:P {props.caToPRatio}:1</span>
       </div>
+      {props.goal ? (
+        <div className="mt-2"><span className="badge-yellow capitalize">{props.goal}</span></div>
+      ) : null}
       <div className="mt-6 overflow-x-auto">
         <table className="table">
           <thead>
@@ -59,17 +67,20 @@ export default function NutritionResults(props: NutritionProps) {
       <details className="mt-4 text-sm">
         <summary className="cursor-pointer text-[color:var(--color-teal-700)]">Why these numbers?</summary>
         <p className="mt-2 text-black/70">
-          We use RER = 70 × kg^0.75 and a life-stage/activity factor to estimate daily calories.
+          We use RER = 70 x kg^0.75 and a life-stage/activity factor to estimate daily calories.
           Protein, fats, calcium, phosphorus and linoleic acid are scaled per 1000 kcal using AAFCO-like targets.
           Consider using a veterinary balancer for micronutrients.
         </p>
       </details>
       {props.notes?.length ? (
         <ul className="mt-3 list-disc pl-5 text-xs text-black/60">
-          {props.notes.map((n, i) => <li key={i}>{n}</li>)}
+          {props.notes.map((n, i) => (
+            <li key={i}>{n}</li>
+          ))}
         </ul>
       ) : null}
-    </Card>
-  )
+    </>
+  );
+  if (props.bare) return content;
+  return <Card>{content}</Card>;
 }
-

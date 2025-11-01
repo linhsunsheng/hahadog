@@ -179,3 +179,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 >>>>>>> 603c0a3 (init: Next.js scaffold)
+
+# local env & build
+.env.local
+.env.*.local
+out/
+

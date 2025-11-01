@@ -1,33 +1,41 @@
-"use client"
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, signOut as fbSignOut, onAuthStateChanged, type User } from 'firebase/auth'
-import { firebaseAuth, googleAuthProvider } from './firebase'
+﻿"use client";
 
-export async function signUpEmail(email: string, password: string) {
-  const auth = firebaseAuth()
-  const cred = await createUserWithEmailAndPassword(auth, email, password)
-  return cred.user
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut as fbSignOut,
+  onAuthStateChanged,
+  updateProfile,
+  sendPasswordResetEmail,
+  type User,
+} from "firebase/auth";
+import { auth as firebaseAuth, googleProvider } from "./firebase";
+
+export function onAuth(cb: (user: User | null) => void) {
+  return onAuthStateChanged(firebaseAuth, cb);
+}
+
+export async function signUpEmail(email: string, password: string, name?: string) {
+  const cred = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+  if (name) {
+    try { await updateProfile(cred.user, { displayName: name }); } catch {}
+  }
+  return cred;
 }
 
 export async function signInEmail(email: string, password: string) {
-  const auth = firebaseAuth()
-  const cred = await signInWithEmailAndPassword(auth, email, password)
-  return cred.user
+  return signInWithEmailAndPassword(firebaseAuth, email, password);
 }
 
 export async function signInGoogle() {
-  const auth = firebaseAuth()
-  const provider = googleAuthProvider()
-  const cred = await signInWithPopup(auth, provider)
-  return cred.user
+  return signInWithPopup(firebaseAuth, googleProvider);
 }
 
 export async function signOut() {
-  const auth = firebaseAuth()
-  await fbSignOut(auth)
+  return fbSignOut(firebaseAuth);
 }
 
-export function subscribeAuth(cb: (user: User | null) => void) {
-  const auth = firebaseAuth()
-  return onAuthStateChanged(auth, cb)
+export async function sendPasswordReset(email: string) {
+  return sendPasswordResetEmail(firebaseAuth, email);
 }
-
