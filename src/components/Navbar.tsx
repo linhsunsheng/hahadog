@@ -9,7 +9,7 @@ export default function Navbar() {
   const { user } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
-  const showBack = pathname?.startsWith('/dogs/')
+  const showBack = pathname?.startsWith('/dogs/') || pathname === '/dog'
   const onClick = async () => {
     if (user) {
       await signOut()

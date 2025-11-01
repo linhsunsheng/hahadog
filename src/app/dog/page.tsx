@@ -1,6 +1,6 @@
-﻿"use client"
+"use client"
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { deleteDoc, doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db, storage } from '@/lib/firebase'
 import { useAuth } from '@/lib/useAuth'
@@ -28,7 +28,8 @@ interface DogDoc {
 }
 
 export default function DogDetailsPage() {
-  const params = useParams<{ id: string }>()
+  const params = useSearchParams()
+  const id = params.get('id') || ''
   const { user, loading } = useAuth()
   const router = useRouter()
   const [dog, setDog] = useState<DogDoc | null>(null)
@@ -49,9 +50,9 @@ export default function DogDetailsPage() {
 
   useEffect(() => {
     async function load() {
-      if (!user) return
-      const ref = doc(db, 'users', user.uid, 'dogs', params.id)
-      const snap = await getDoc(ref)
+      if (!user || !id) return
+      const refDoc = doc(db, 'users', user.uid, 'dogs', id)
+      const snap = await getDoc(refDoc)
       if (!snap.exists()) { router.replace('/dashboard'); return }
       const data = snap.data() as DogDoc
       setDog(data)
@@ -66,7 +67,7 @@ export default function DogDetailsPage() {
       setBreedKey((data.breedKey as any) || 'mixed_medium')
     }
     load()
-  }, [user, params.id, router])
+  }, [user, id, router])
 
   const puppy = useMemo(()=> Boolean(dog?.birthday) && (ageY*12 + ageM) < 24, [dog, ageY, ageM])
 
@@ -84,10 +85,10 @@ export default function DogDetailsPage() {
   }
 
   async function onSave() {
-    if (!dog || weight === '' || weight <= 0) return
+    if (!user || !id || !dog || weight === '' || weight <= 0) return
     setSaving(true)
     try {
-      const refDoc = doc(db, 'users', user!.uid, 'dogs', params.id)
+      const refDog = doc(db, 'users', user.uid, 'dogs', id)
       const res = result ?? computeNutrition({
         breed: (breedKey === 'not_listed' ? 'mixed_medium' : breedKey) as BreedKey,
         weightKg: Number(weight),
@@ -102,12 +103,12 @@ export default function DogDetailsPage() {
         patch.birthday = dog.birthday ?? null
         patch.breedKey = breedKey
         if (photo) {
-          const up = await uploadDogPhoto(user!.uid, params.id as string, photo)
+          const up = await uploadDogPhoto(user.uid, id, photo)
           patch.photoURL = up.url
           setPhotoURL(up.url)
         }
       }
-      await updateDoc(refDoc, patch)
+      await updateDoc(refDog, patch)
     } finally { setSaving(false) }
   }
 
@@ -161,8 +162,9 @@ export default function DogDetailsPage() {
               <Button type="button" className="btn-outline" onClick={onSave} disabled={saving}>Save Changes</Button>
               <ConfirmDialog title="Delete profile" message="This will permanently delete the profile and photo."
                 onConfirm={async ()=>{
-                  const refDoc = doc(db,'users',user!.uid,'dogs',params.id)
-                  await deleteDoc(refDoc)
+                  if (!user || !id) return
+                  const refDog = doc(db,'users',user.uid,'dogs',id)
+                  await deleteDoc(refDog)
                   if (photoURL) { try { await deleteObject(ref(storage, photoURL)) } catch {} }
                   router.push('/dashboard')
                 }}>

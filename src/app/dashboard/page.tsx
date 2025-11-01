@@ -77,7 +77,7 @@ export default function DashboardPage() {
                     {typeof d.weightKg==='number' ? ` - ${d.weightKg} kg` : ''}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <Button href={`/dogs/${d.id}`} className="btn-outline">View / Edit</Button>
+                    <Button href={`/dog?id=${d.id}`} className="btn-outline">View / Edit</Button>
                     <ConfirmDialog title="Delete profile" message="This will delete the dog profile and photo."
                       onConfirm={async ()=>{
                         const docRef = doc(db,'users',user!.uid,'dogs',d.id)
@@ -99,4 +99,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-

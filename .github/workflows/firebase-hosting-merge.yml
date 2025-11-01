@@ -1,4 +1,4 @@
-name: Deploy to Firebase (Web Frameworks) on merge
+name: Deploy to Firebase Hosting (static) on merge
 on:
   push:
     branches: [main]
@@ -26,15 +26,9 @@ jobs:
 
       - run: npm ci && npm run build
 
-      # 3) Authenticate to Google Cloud with a service account for Firebase CLI
-      - uses: google-github-actions/auth@v2
+      - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAHADOG_2B840 }}
-
-      # 4) Deploy via Firebase CLI using Web Frameworks (SSR for Next.js)
-      - name: Deploy (web frameworks)
-        env:
-          FIREBASE_CLI_EXPERIMENTS: webframeworks
-        run: |
-          npx firebase-tools@latest experiments:enable webframeworks
-          npx firebase-tools@latest deploy --project hahadog-2b840
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HAHADOG_2B840 }}
+          channelId: live
+          projectId: hahadog-2b840
