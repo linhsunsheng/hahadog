@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { deleteDoc, doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db, storage } from '@/lib/firebase'
@@ -27,7 +27,7 @@ interface DogDoc {
   breedKey?: string | null
 }
 
-export default function DogDetailsPage() {
+function DogDetailsInner() {
   const params = useSearchParams()
   const id = params.get('id') || ''
   const { user, loading } = useAuth()
@@ -187,3 +187,10 @@ export default function DogDetailsPage() {
   )
 }
 
+export default function DogDetailsPage() {
+  return (
+    <Suspense fallback={<div className="text-center text-sm text-black/60">Loading…</div>}>
+      <DogDetailsInner />
+    </Suspense>
+  )
+}
