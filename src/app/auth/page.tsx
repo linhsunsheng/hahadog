@@ -116,7 +116,7 @@ export default function AuthPage() {
           <div className="flex gap-3">
             <Button type="submit" className="btn-primary" disabled={loading}>{mode === 'login' ? 'Log in' : 'Sign up'}</Button>
             {mode === 'login' && (
-              <Button type="button" variant="ghost" onClick={handleResetPassword} disabled={loading}>Forgot password?</Button>
+              <Button type="button" variant="outline" onClick={handleResetPassword} disabled={loading}>Forgot password?</Button>
             )}
             <Button type="button" variant="teal" onClick={handleGoogle} disabled={loading}>
               <span className="mr-2 inline-block align-middle">
