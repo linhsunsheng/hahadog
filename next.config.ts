@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
-  // Enable static export if you want to host on static hosting
-  // output: 'export',
+  output: 'export',
+  images: { unoptimized: true },
 };
 
 export default nextConfig;

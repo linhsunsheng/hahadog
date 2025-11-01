@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/useAuth'
-import { collection, doc, getDoc, getDocs, orderBy, query, setDoc, deleteDoc } from 'firebase/firestore'
+import { collection, doc, getDocs, orderBy, query, deleteDoc } from 'firebase/firestore'
 import { db, storage } from '@/lib/firebase'
 import Card from '@/components/Card'
 import Button from '@/components/Button'
@@ -35,12 +35,6 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       if (!user) return
-      // Ensure user root doc exists for data model hygiene
-      const userRef = doc(db, 'users', user.uid)
-      const userSnap = await getDoc(userRef)
-      if (!userSnap.exists()) {
-        await setDoc(userRef, { email: user.email ?? '', createdAt: new Date() })
-      }
       const col = collection(db, 'users', user.uid, 'dogs')
       const snap = await getDocs(query(col, orderBy('createdAt', 'desc')))
       const items: DogDoc[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
@@ -64,7 +58,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-lg font-semibold">Add your first dog</div>
-              <p className="mt-1 text-black/70">Start by creating a dog profile. We’ll save it for quick reuse.</p>
+              <p className="mt-1 text-black/70">Start by creating a dog profile. We'll save it for quick reuse.</p>
               <Button href="/dogs/new" className="btn-primary mt-4">Create Dog Profile</Button>
             </div>
             <DogDoodle className="hidden h-24 w-48 sm:block" />
@@ -79,8 +73,8 @@ export default function DashboardPage() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-lg font-semibold">{d.nickname}</div>
                   <div className="text-sm text-black/60">
-                    {d.breedKey ? `${d.breedKey}` : (d.birthday ? (()=>{const a=deriveAgeFromBirthday(d.birthday!); return `Age: ${a.years}y ${a.months}m`})() : '—')}
-                    {typeof d.weightKg==='number' ? ` • ${d.weightKg} kg` : ''}
+                    {d.breedKey ? `${d.breedKey}` : (d.birthday ? (()=>{const a=deriveAgeFromBirthday(d.birthday!); return `Age: ${a.years}y ${a.months}m`})() : '-')}
+                    {typeof d.weightKg==='number' ? ` - ${d.weightKg} kg` : ''}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button href={`/dogs/${d.id}`} className="btn-outline">View / Edit</Button>
@@ -105,3 +99,4 @@ export default function DashboardPage() {
     </div>
   )
 }
+

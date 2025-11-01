@@ -81,11 +81,22 @@ export default function DogDetailsPage() {
       neuter,
     })
     setResult(res)
-    // Save changes simultaneously
+  }
+
+  async function onSave() {
+    if (!dog || weight === '' || weight <= 0) return
     setSaving(true)
     try {
       const refDoc = doc(db, 'users', user!.uid, 'dogs', params.id)
-      const patch: any = { updatedAt: Date.now() }
+      const res = result ?? computeNutrition({
+        breed: (breedKey === 'not_listed' ? 'mixed_medium' : breedKey) as BreedKey,
+        weightKg: Number(weight),
+        ageYears: ageY,
+        ageMonths: ageM,
+        activity,
+        neuter,
+      })
+      const patch: any = { updatedAt: Date.now(), neuter, activity, goal: res.goal, weightKg: Number(weight) }
       if (!locked) {
         patch.nickname = dog.nickname
         patch.birthday = dog.birthday ?? null
@@ -96,10 +107,6 @@ export default function DogDetailsPage() {
           setPhotoURL(up.url)
         }
       }
-      patch.neuter = neuter
-      patch.activity = activity
-      patch.goal = res.goal
-      patch.weightKg = Number(weight)
       await updateDoc(refDoc, patch)
     } finally { setSaving(false) }
   }
@@ -107,7 +114,7 @@ export default function DogDetailsPage() {
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] || null
     if (!f) { setPhoto(null); return }
-    if (!/^image\/(jpeg|png)$/i.test(f.type) || f.size > 2*1024*1024) { alert('Use JPEG/PNG â‰¤ 2MB'); return }
+    if (!/^image\/(jpeg|png)$/i.test(f.type) || f.size > 2*1024*1024) { alert('Use JPEG/PNG <= 2MB'); return }
     setPhoto(f)
     setPhotoURL(URL.createObjectURL(f))
   }
@@ -143,7 +150,7 @@ export default function DogDetailsPage() {
               {allBreedOptions().map((b)=> (<option key={b.key} value={b.key}>{b.label}</option>))}
               <option value="not_listed">Not on the list</option>
             </Select></Field>
-            <Field label="Weight (kg)" id="weight"><Input id="weight" type="number" step="0.1" min={1} max={80} value={weight} onChange={(e)=> setWeight(e.target.value === '' ? '' : Number(e.target.value))} /><p className="mt-1 text-xs">Typical range 1â€“80 kg. Results may be inaccurate outside this range.</p></Field>
+            <Field label="Weight (kg)" id="weight"><Input id="weight" type="number" step="0.1" min={1} max={80} value={weight} onChange={(e)=> setWeight(e.target.value === '' ? '' : Number(e.target.value))} /><p className="mt-1 text-xs">Typical range 1-80 kg. Results may be inaccurate outside this range.</p></Field>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Neuter" id="neuter"><Select id="neuter" value={neuter} onChange={(e)=>setNeuter(e.target.value as Neuter)}><option value="neutered">Neutered</option><option value="intact">Intact</option></Select></Field>
               <Field label="Activity" id="activity"><Select id="activity" value={activity} onChange={(e)=>setActivity(e.target.value as Activity)}><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option></Select></Field>
@@ -151,6 +158,7 @@ export default function DogDetailsPage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <Button type="button" className="btn-primary" onClick={recalc} disabled={saving}>Calculate</Button>
+              <Button type="button" className="btn-outline" onClick={onSave} disabled={saving}>Save Changes</Button>
               <ConfirmDialog title="Delete profile" message="This will permanently delete the profile and photo."
                 onConfirm={async ()=>{
                   const refDoc = doc(db,'users',user!.uid,'dogs',params.id)

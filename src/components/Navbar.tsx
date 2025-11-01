@@ -15,7 +15,7 @@ export default function Navbar() {
       await signOut()
       router.push('/')
     } else {
-      router.push('/auth')
+      router.push('/auth?mode=login')
     }
   }
   return (

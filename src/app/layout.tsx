@@ -12,10 +12,10 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/hahadog.svg", type: "image/svg+xml" },
-      { url: "/hahadog.png", type: "image/png" }
+      { url: "/hahadog.png", type: "image/png" },
     ],
     apple: "/hahadog.png",
-    shortcut: "/hahadog.png"
+    shortcut: "/hahadog.png",
   },
 };
 
@@ -31,3 +31,4 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+

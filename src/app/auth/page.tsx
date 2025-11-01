@@ -1,5 +1,5 @@
-"use client"
-import { useState, useMemo } from 'react'
+﻿"use client"
+import { useState, useMemo, Suspense } from 'react'
 import { z } from 'zod'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
@@ -12,7 +12,7 @@ const schema = z.object({
   password: z.string().min(6, 'Min 6 characters'),
 })
 
-export default function AuthPage() {
+function AuthPageInner() {
   const searchParams = useSearchParams()
   const initialMode = useMemo<'login' | 'register'>(() => {
     const m = searchParams.get('mode')
@@ -25,6 +25,7 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
@@ -109,7 +110,27 @@ export default function AuthPage() {
             <Input id="email" name="email" type="email" autoComplete="email" value={email} onChange={(e)=>setEmail(e.target.value)} required />
           </Field>
           <Field label="Password" id="password">
-            <Input id="password" name="password" type="password" autoComplete="current-password" value={password} onChange={(e)=>setPassword(e.target.value)} required />
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                value={password}
+                onChange={(e)=>setPassword(e.target.value)}
+                required
+                className="pr-24"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-black/10 px-3 py-1 text-xs text-brown-600 hover:bg-black/5"
+                aria-pressed={showPassword}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </Field>
           {error && <div role="alert" className="text-sm text-red-700">{error}</div>}
           {info && <div role="status" className="text-sm text-green-700">{info}</div>}
@@ -130,3 +151,12 @@ export default function AuthPage() {
     </div>
   )
 }
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div className="text-center text-sm text-black/60">Loading…</div>}>
+      <AuthPageInner />
+    </Suspense>
+  )
+}
+

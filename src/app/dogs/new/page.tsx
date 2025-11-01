@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { collection, doc, setDoc } from 'firebase/firestore'
@@ -49,31 +49,47 @@ export default function NewDogPage() {
       neuter,
     })
     setResult(res)
-    // Auto save or update profile
-    const col = collection(db, 'users', user.uid, 'dogs')
-    let r
-    if (!docId) {
-      r = doc(col)
-      setDocId(r.id)
-    } else {
-      r = doc(col, docId)
-    }
-    await setDoc(r, {
-      nickname,
-      birthday,
-      weightKg: Number(weight),
-      breedKey,
-      neuter,
-      activity,
-      goal: res.goal,
-      photoURL: null,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      locked: true,
-    }, { merge: true })
   }
 
-  // No explicit Save; Calculate persists
+  async function onSave() {
+    if (!user) return
+    const w = Number(weight)
+    if (!Number.isFinite(w) || w <= 0) return
+    setSaving(true)
+    try {
+      const col = collection(db, 'users', user.uid, 'dogs')
+      let r
+      if (!docId) {
+        r = doc(col)
+        setDocId(r.id)
+      } else {
+        r = doc(col, docId)
+      }
+      const res = result ?? computeNutrition({
+        breed: (breedKey === 'not_listed' ? 'mixed_medium' : breedKey) as BreedKey,
+        weightKg: w,
+        ageYears: birthday ? age.years : 2,
+        ageMonths: birthday ? age.months : 0,
+        activity,
+        neuter,
+      })
+      await setDoc(r, {
+        nickname,
+        birthday,
+        weightKg: Number(weight),
+        breedKey,
+        neuter,
+        activity,
+        goal: res.goal,
+        photoURL: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        locked: true,
+      }, { merge: true })
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (!user) return null
 
@@ -103,6 +119,7 @@ export default function NewDogPage() {
           </div>
           <div className="flex flex-wrap gap-3">
             <Button type="submit" className="btn-primary" disabled={!nickname || !birthday || !weight || saving}>Calculate</Button>
+            <Button type="button" className="btn-outline" onClick={onSave} disabled={!nickname || !birthday || !weight || saving}>Save Profile</Button>
           </div>
         </form>
       </Card>
@@ -119,3 +136,4 @@ export default function NewDogPage() {
     </div>
   )
 }
+
